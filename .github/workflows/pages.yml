@@ -1,0 +1,42 @@
+name: Deploy 合成大猪咪
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths:
+      - '.github/workflows/pages.yml'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download packaged game
+        run: |
+          curl -fL --retry 3 -o game.tar.gz 'https://hecheng-dazhumimi.he242831.chatgpt.site/deploy-source.tar.gz'
+          mkdir extracted _site
+          tar -xzf game.tar.gz -C extracted
+          cp -a extracted/dist/. _site/
+          rm -f _site/deploy-source.tar.gz
+          touch _site/.nojekyll
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
